@@ -74,5 +74,8 @@ impl RiscvVirtualMachine{
         }
     }
 }
+struct ItypeInstruction{
+    
+}
 fn main() {
 }
