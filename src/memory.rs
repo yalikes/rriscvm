@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 pub struct Memory {
-    mem: HashMap<u32, u32>, //for performance, this can be change to HashMap<u16,[u32;2**16]>
+    mem: HashMap<u32, u8>, //for performance, this can be change to HashMap<u16,[u32;2**16]>
 }
 impl Memory {
     pub fn new() -> Memory {
@@ -8,10 +8,10 @@ impl Memory {
             mem: HashMap::new(),
         }
     }
-    pub fn load(&mut self, address: u32, value: u32) {
+    pub fn load(&mut self, address: u32, value: u8) {
         self.mem.insert(address, value);
     }
-    pub fn fetch(&self, address: u32)->u32{
+    pub fn fetch(&self, address: u32)->u8{
         *self.mem.get(&address).unwrap()
     }
 }
