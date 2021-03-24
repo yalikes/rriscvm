@@ -8,7 +8,7 @@ impl Memory {
             mem: HashMap::new(),
         }
     }
-    pub fn load(&mut self, address: u32, value: u8) {
+    pub fn write(&mut self, address: u32, value: u8) {
         self.mem.insert(address, value);
     }
     pub fn fetch(&self, address: u32)->u8{
@@ -18,8 +18,8 @@ impl Memory {
 #[test]
 fn test_memory(){
     let mut mem = Memory::new();
-    mem.load(0, 0);
+    mem.write(0, 0);
     assert_eq!(mem.fetch(0),0);
-    mem.load(1, 42);
+    mem.write(1, 42);
     assert_eq!(mem.fetch(1),42);
 }

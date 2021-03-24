@@ -33,6 +33,8 @@ pub struct RiscvVirtualMachine{
     pub x30:u32,
     pub x31:u32,
     pub pc:u32,
+    //pc indicate the address of current instruction.
+    //for me, "current" means from fetch instruction(inclusive) to the before instrction finish.
         _ir:u32,
     pub memory: Memory,
 }
@@ -113,6 +115,15 @@ impl RiscvVirtualMachine{
         self.x31=0;
         self._ir=0;
     }
+    pub fn fetch_instruction(&self) -> u32{
+
+    }
+    //pub fn fetch_instruction(&self) -> u32{
+    //}
     pub fn exec(&mut self){
+        self._ir=self.fetch_instruction();
+        //exec instrction here
+
+        //change to next instruction here
     }
 }
