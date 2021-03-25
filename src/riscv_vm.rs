@@ -1,4 +1,6 @@
 use crate::memory::Memory;
+use crate::instruction::{InstructionTypes,ItypeInstructionNames ,identify_instruction};
+use crate::bit_utils::u32_assemble;
 pub struct RiscvVirtualMachine{
     pub x0:u32,
     pub x1:u32,
@@ -116,14 +118,22 @@ impl RiscvVirtualMachine{
         self._ir=0;
     }
     pub fn fetch_instruction(&self) -> u32{
-
+        let x0 = self.memory.fetch(self.pc);
+        let x1 = self.memory.fetch(self.pc+1);
+        let x2 = self.memory.fetch(self.pc+2);
+        let x3 = self.memory.fetch(self.pc+3);
+        u32_assemble(x0, x1, x2, x3)
     }
-    //pub fn fetch_instruction(&self) -> u32{
-    //}
     pub fn exec(&mut self){
         self._ir=self.fetch_instruction();
-        //exec instrction here
+        match identify_instruction(self._ir){
+            InstructionTypes::R=>{
+                //TODO here
+            }
+            _=>{
 
+            }
+        }
         //change to next instruction here
     }
 }

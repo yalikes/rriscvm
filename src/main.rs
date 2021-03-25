@@ -2,6 +2,7 @@ mod riscv_vm;
 mod memory;
 mod instruction;
 mod defines;
+mod bit_utils;
 
 use riscv_vm::RiscvVirtualMachine;
 
