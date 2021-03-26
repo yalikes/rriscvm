@@ -128,12 +128,20 @@ impl RiscvVirtualMachine{
         self._ir=self.fetch_instruction();
         match identify_instruction(self._ir){
             InstructionTypes::R=>{
-                //TODO here
+
             }
             _=>{
-
             }
         }
         //change to next instruction here
+    }
+    pub fn ADDI(&mut self){
+
+    }
+    pub fn SLTI(&mut self){
+
+    }
+    pub fn SLTIU(&mut self){
+        
     }
 }

@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod riscv_vm;
 mod memory;
 mod instruction;
