@@ -90,14 +90,14 @@ impl ItypeInstruction {
 pub fn identify_instruction(instruction: u32) -> InstructionTypes {
     let opcode = (instruction & 0b0111_1111) as u8;
     match opcode {
-        OP_IMM => identify_inst_with_OP_IMM(instruction),
+        OP_IMM => identify_inst_with_op_imm(instruction),
         _ => {
             panic!("not implement!")
         }
     }
 }
 
-fn identify_inst_with_OP_IMM(instruction: u32) -> InstructionTypes {
+fn identify_inst_with_op_imm(instruction: u32) -> InstructionTypes {
     InstructionTypes::I
 }
 
@@ -107,4 +107,15 @@ fn test_identify_instruction() {
         identify_instruction(0b1111_1111_1111_11111_000_11111_0010011),
         InstructionTypes::I
     ));
+}
+
+#[test]
+fn test_itype_instruction() {
+    let addi = ItypeInstruction::from_instruction(0b1111_1111_1111_11111_000_11111_0010011);
+    assert!(matches!(addi.name, ItypeInstructionNames::ADDI));
+    assert_eq!(addi.opcode,OP_IMM);
+    assert_eq!(addi.funct3,ADDI_FUNCT3);
+    assert_eq!(addi.rd,0b1_1111);
+    assert_eq!(addi.rs1,0b1_1111);
+    assert_eq!(addi.imm, 0b1111_1111_1111);
 }

@@ -138,13 +138,13 @@ impl RiscvVirtualMachine{
         }
         //change to next instruction here
     }
-    pub fn ADDI(&mut self){
+    pub fn addi(&mut self){
 
     }
-    pub fn SLTI(&mut self){
+    pub fn slti(&mut self){
 
     }
-    pub fn SLTIU(&mut self){
+    pub fn sltiu(&mut self){
         
     }
 }
