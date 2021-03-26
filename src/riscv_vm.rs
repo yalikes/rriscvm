@@ -1,6 +1,7 @@
 use crate::memory::Memory;
-use crate::instruction::{InstructionTypes,ItypeInstructionNames ,identify_instruction};
+use crate::instruction::{InstructionTypes,ItypeInstructionNames ,ItypeInstruction,identify_instruction};
 use crate::bit_utils::u32_assemble;
+
 pub struct RiscvVirtualMachine{
     pub x0:u32,
     pub x1:u32,
@@ -128,7 +129,9 @@ impl RiscvVirtualMachine{
         self._ir=self.fetch_instruction();
         match identify_instruction(self._ir){
             InstructionTypes::R=>{
-
+            }
+            InstructionTypes::I=>{
+                let inst=ItypeInstruction::from_instruction(self._ir);
             }
             _=>{
             }
