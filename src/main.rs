@@ -1,5 +1,6 @@
-#[macro_use]
-extern crate lazy_static;
+//#[macro_use]
+//extern crate lazy_static;
+//上面的那个库我已经忘了为什么要引入了
 
 mod riscv_vm;
 mod memory;
