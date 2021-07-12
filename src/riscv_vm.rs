@@ -152,7 +152,16 @@ impl RiscvVirtualMachine {
         self.set_reg(inst.rd, (self.get_reg(inst.rs1) as i32 + imm) as u32);
         self.pc+=4;
     }
-    pub fn slti(&mut self) {}
+    pub fn slti(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let imm = sign_extend12(inst.imm);
+        if (self.get_reg(inst.rs1) as i32) < imm{
+            self.set_reg(inst.rd, 1);
+        }else{
+            self.set_reg(inst.rd, 0);
+        }
+        self.pc+=4;
+    }
     pub fn sltiu(&mut self) {}
     pub fn get_reg(&self, reg_name: u8) -> u32 {
         match reg_name {
@@ -251,5 +260,22 @@ mod test_32i_isa{
         vm.exec();
         assert_eq!(vm.x2, 64);
         assert_eq!(vm.pc, 8);
+    }
+    #[test]
+    fn test_slti(){
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000);
+        vm.memory.write(2, 0b00110001);
+        vm.memory.write(1, 0b00100000);
+        vm.memory.write(0, 0b10010011);
+        vm.exec();
+        assert_eq!(vm.x1, 1);
+        vm.set_reg(2, 4);
+        vm.memory.write(7, 0b00000000);
+        vm.memory.write(6, 0b00110001);
+        vm.memory.write(5, 0b00100000);
+        vm.memory.write(4, 0b10010011);
+        vm.exec();
+        assert_eq!(vm.x1, 0);
     }
 }
