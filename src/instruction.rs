@@ -48,7 +48,7 @@ impl ItypeInstruction {
     pub fn from_instruction(instruction: u32) -> ItypeInstruction {
         let opcode = (instruction & 0b0111_1111) as u8; //
         let rd = ((instruction >> 7) & 0b1_1111) as u8;
-        let funct3 = ((instruction >> 12) & 0b11) as u8;
+        let funct3 = ((instruction >> 12) & 0b111) as u8;
         let rs1 = ((instruction >> 15) & 0b1_1111) as u8;
         let imm = (instruction >> 20) as u16;
         let name: ItypeInstructionNames = match opcode as u8 {
