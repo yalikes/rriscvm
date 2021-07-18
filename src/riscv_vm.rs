@@ -1,4 +1,4 @@
-use crate::bit_utils::{sign_extend12, u32_assemble};
+use crate::bit_utils::{Isign_extend, u32_assemble};
 use crate::instruction::{
     identify_instruction, InstructionTypes, ItypeInstruction, ItypeInstructionNames,
 };
@@ -137,6 +137,9 @@ impl RiscvVirtualMachine {
                     ItypeInstructionNames::ADDI => self.addi(),
                     ItypeInstructionNames::SLTI => self.slti(),
                     ItypeInstructionNames::SLTIU => self.sltiu(),
+                    ItypeInstructionNames::XORI => self.xori(),
+                    ItypeInstructionNames::ORI => self.ori(),
+                    ItypeInstructionNames::ANDI => self.andi(),
                     _ => {
                         panic!("not implement yet");
                     }
@@ -148,13 +151,13 @@ impl RiscvVirtualMachine {
     }
     pub fn addi(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = sign_extend12(inst.imm);
+        let imm = Isign_extend(inst.imm);
         self.set_reg(inst.rd, (self.get_reg(inst.rs1) as i32 + imm) as u32);
         self.pc+=4;
     }
     pub fn slti(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = sign_extend12(inst.imm);
+        let imm = Isign_extend(inst.imm);
         if (self.get_reg(inst.rs1) as i32) < imm{
             self.set_reg(inst.rd, 1);
         }else{
@@ -162,7 +165,18 @@ impl RiscvVirtualMachine {
         }
         self.pc+=4;
     }
-    pub fn sltiu(&mut self) {}
+    pub fn sltiu(&mut self) {
+
+    }
+    pub fn xori(&mut self){
+
+    }
+    pub fn ori(&mut self){
+
+    }
+    pub fn andi(&mut self){
+
+    }
     pub fn get_reg(&self, reg_name: u8) -> u32 {
         match reg_name {
             0 => self.x0,
