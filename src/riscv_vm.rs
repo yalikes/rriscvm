@@ -1,6 +1,7 @@
-use crate::bit_utils::{i_sign_extend, u32_assemble};
+use crate::bit_utils::{i_sign_extend, u32_assemble, u_sign_extend};
 use crate::instruction::{
     identify_instruction, InstructionTypes, ItypeInstruction, ItypeInstructionNames,
+    UtypeInstruction, UtypeInstructionNames,
 };
 use crate::memory::Memory;
 
@@ -140,6 +141,19 @@ impl RiscvVirtualMachine {
                     ItypeInstructionNames::XORI => self.xori(),
                     ItypeInstructionNames::ORI => self.ori(),
                     ItypeInstructionNames::ANDI => self.andi(),
+                    ItypeInstructionNames::SLLI => self.slli(),
+                    ItypeInstructionNames::SRLI => self.srli(),
+                    ItypeInstructionNames::SRAI => self.srai(),
+                    _ => {
+                        panic!("not implement yet");
+                    }
+                }
+            }
+            InstructionTypes::U => {
+                let inst = UtypeInstruction::from_instruction(self._ir);
+                match inst.name{
+                    UtypeInstructionNames::LUI => self.lui(),
+                    UtypeInstructionNames::AUIPC => self.auipc(),
                     _ => {
                         panic!("not implement yet");
                     }
@@ -149,26 +163,29 @@ impl RiscvVirtualMachine {
         }
         //change to next instruction here
     }
+
     pub fn addi(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = i_sign_extend(inst.imm);
+        let imm = i_sign_extend(inst.imm) as i32;
         let rs = self.get_reg(inst.rs1) as i32;
         self.set_reg(inst.rd, (rs + imm) as u32);
         self.pc += 4;
     }
+
     pub fn slti(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
         let imm = i_sign_extend(inst.imm);
-        if (self.get_reg(inst.rs1) as i32) < imm {
+        if (self.get_reg(inst.rs1) as i32) < imm as i32 {
             self.set_reg(inst.rd, 1);
         } else {
             self.set_reg(inst.rd, 0);
         }
         self.pc += 4;
     }
+
     pub fn sltiu(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = i_sign_extend(inst.imm) as u32;
+        let imm = i_sign_extend(inst.imm);
         if self.get_reg(inst.rs1) < imm {
             self.set_reg(inst.rd, 1);
         } else {
@@ -176,26 +193,64 @@ impl RiscvVirtualMachine {
         }
         self.pc += 4;
     }
+
     pub fn xori(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = i_sign_extend(inst.imm) as u32;
+        let imm = i_sign_extend(inst.imm);
         let rs = self.get_reg(inst.rs1);
         self.set_reg(inst.rd, imm ^ rs);
-        self.pc+=4;
+        self.pc += 4;
     }
+
     pub fn ori(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = i_sign_extend(inst.imm) as u32;
+        let imm = i_sign_extend(inst.imm);
         let rs = self.get_reg(inst.rs1);
         self.set_reg(inst.rd, imm | rs);
-        self.pc+=4;
+        self.pc += 4;
     }
+
     pub fn andi(&mut self) {
         let inst = ItypeInstruction::from_instruction(self._ir);
-        let imm = i_sign_extend(inst.imm) as u32;
+        let imm = i_sign_extend(inst.imm);
         let rs = self.get_reg(inst.rs1);
-        print!("{}",imm);
         self.set_reg(inst.rd, imm & rs);
+        self.pc += 4;
+    }
+
+    pub fn slli(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let shamt = inst.imm & 0b1_1111;
+        let rs = self.get_reg(inst.rs1);
+        self.set_reg(inst.rd, rs << shamt);
+        self.pc+=4;
+    }
+
+    pub fn srli(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let shamt = inst.imm & 0b1_1111;
+        let rs: u32 = self.get_reg(inst.rs1);
+        self.set_reg(inst.rd, rs >> shamt);
+        self.pc+=4;
+    }
+
+    pub fn srai(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let shamt = inst.imm & 0b1_1111;
+        let rs: i32 = self.get_reg(inst.rs1) as i32;
+        self.set_reg(inst.rd, (rs >> shamt) as u32);
+        self.pc+=4;
+    }
+    pub fn lui(&mut self) {
+        let inst = UtypeInstruction::from_instruction(self._ir);
+        let imm = u_sign_extend(inst.imm);
+        self.set_reg(inst.rd, imm);
+        self.pc+=4;
+    }
+    pub fn auipc(&mut self){
+        let inst = UtypeInstruction::from_instruction(self._ir);
+        let imm = u_sign_extend(inst.imm);
+        self.set_reg(inst.rd, imm+self.pc);
         self.pc+=4;
     }
     pub fn get_reg(&self, reg_name: u8) -> u32 {
@@ -277,6 +332,7 @@ impl RiscvVirtualMachine {
 #[cfg(test)]
 mod test_32i_isa {
     use super::RiscvVirtualMachine;
+
     #[test]
     fn test_addi() {
         let mut vm = RiscvVirtualMachine::new();
@@ -296,6 +352,7 @@ mod test_32i_isa {
         assert_eq!(vm.x2, 64);
         assert_eq!(vm.pc, 8);
     }
+
     #[test]
     fn test_slti() {
         let mut vm = RiscvVirtualMachine::new();
@@ -325,6 +382,7 @@ mod test_32i_isa {
         vm.exec();
         assert_eq!(vm.x1, 0);
     }
+
     #[test]
     fn test_sltiu() {
         let mut vm = RiscvVirtualMachine::new();
@@ -353,11 +411,12 @@ mod test_32i_isa {
         vm.exec();
         assert_eq!(vm.x1, 1);
     }
+
     #[test]
-    fn test_andi(){
+    fn test_andi() {
         /*
-         * x2 = 12
-         * imm = 6
+         * x2 = 6
+         * imm = 12
          * 12 & 6 == 4
          */
         let mut vm = RiscvVirtualMachine::new();
@@ -369,5 +428,126 @@ mod test_32i_isa {
         vm.set_reg(2, 6);
         vm.exec();
         assert_eq!(vm.get_reg(1), 4);
+    }
+
+    #[test]
+    fn test_xori() {
+        /*
+         * x2 = 6
+         * imm = 12
+         * 12 ^ 6 == 10
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b11000001u8);
+        vm.memory.write(1, 0b01000000u8);
+        vm.memory.write(0, 0b10010011u8);
+
+        vm.set_reg(2, 6);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), 10);
+    }
+
+    #[test]
+    fn test_ori() {
+        /*
+         * x2 = 6
+         * imm = 12
+         * 12 | 6 == 14
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b11000001u8);
+        vm.memory.write(1, 0b01100000u8);
+        vm.memory.write(0, 0b10010011u8);
+
+        vm.set_reg(2, 6);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), 14);
+    }
+
+    #[test]
+    fn test_slli() {
+        /*
+         * x2 = 6
+         * imm = 2
+         * 6 << 2 == 24
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00100001u8);
+        vm.memory.write(1, 0b00010000u8);
+        vm.memory.write(0, 0b10010011u8);
+
+        vm.set_reg(2, 6);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), 24);
+    }
+
+    #[test]
+    fn test_srli() {
+        /*
+         * x2 = -10
+         * imm = 1
+         * -10  as u32 >> 1 == 2147483643
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00010001u8);
+        vm.memory.write(1, 0b01010000u8);
+        vm.memory.write(0, 0b10010011u8);
+
+        vm.set_reg(2, (-10 as i32) as u32);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), 2147483643);
+    }
+    #[test]
+    fn test_srai() {
+        /*
+         * x2 = -10
+         * imm = 1
+         * -10 >> 1 == -5
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b01000000u8);
+        vm.memory.write(2, 0b00010001u8);
+        vm.memory.write(1, 0b01010000u8);
+        vm.memory.write(0, 0b10010011u8);
+
+        vm.set_reg(2, (-10 as i32) as u32);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), (-5 as i32) as u32);
+    }
+
+    #[test]
+    fn test_lui(){
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00000000u8);
+        vm.memory.write(1, 0b11110000u8);
+        vm.memory.write(0, 0b10110111u8);
+
+        vm.exec();
+        assert_eq!(vm.get_reg(1),0b1111 << 12);
+    }
+
+    #[test]
+    fn test_auipc(){
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00000000u8);
+        vm.memory.write(1, 0b11110000u8);
+        vm.memory.write(0, 0b10010111u8);
+
+        vm.memory.write(7, 0b00000000u8);
+        vm.memory.write(6, 0b00000000u8);
+        vm.memory.write(5, 0b11110000u8);
+        vm.memory.write(4, 0b10010111u8);
+
+        vm.exec();
+        assert_eq!(vm.get_reg(1),(0b1111 << 12) + 0 );
+
+        vm.exec();
+        assert_eq!(vm.get_reg(1),(0b1111 << 12) + 4 );
     }
 }
