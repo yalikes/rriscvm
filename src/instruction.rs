@@ -5,6 +5,7 @@ const MISC_MEM: u8 = 0b_00_011_11;
 const OP_IMM: u8 = 0b_00_100_11;
 const AUIPC: u8 = 0b_00_101_11;
 const OP_IMM_32: u8 = 0b_00_110_11;
+const LUI: u8 = 0b_01_101_11;
 
 const ADDI_FUNCT3: u8 = 0b000;
 const SLTI_FUNCT3: u8 = 0b010;
@@ -46,12 +47,12 @@ pub struct ItypeInstruction {
 
 impl ItypeInstruction {
     pub fn from_instruction(instruction: u32) -> ItypeInstruction {
-        let opcode = (instruction & 0b0111_1111) as u8; //
+        let opcode = (instruction & 0b0111_1111) as u8; 
         let rd = ((instruction >> 7) & 0b1_1111) as u8;
         let funct3 = ((instruction >> 12) & 0b111) as u8;
         let rs1 = ((instruction >> 15) & 0b1_1111) as u8;
         let imm = (instruction >> 20) as u16;
-        let name: ItypeInstructionNames = match opcode as u8 {
+        let name: ItypeInstructionNames = match opcode {
             OP_IMM => match funct3 {
                 ADDI_FUNCT3 => ItypeInstructionNames::ADDI,
                 SLTI_FUNCT3 => ItypeInstructionNames::SLTI,
@@ -63,9 +64,9 @@ impl ItypeInstruction {
                 SRLI_OR_SRAI_FUNCT3 => {
                     if ((instruction >> 30) & 0b01) > 0 {
                         //check 30 bit
-                        ItypeInstructionNames::SRLI
-                    } else {
                         ItypeInstructionNames::SRAI
+                    } else {
+                        ItypeInstructionNames::SRLI
                     }
                 }
                 _ => {
@@ -87,10 +88,45 @@ impl ItypeInstruction {
     }
 }
 
+pub enum UtypeInstructionNames{
+    LUI,
+    AUIPC,
+}
+
+pub struct UtypeInstruction {
+    pub name: UtypeInstructionNames,
+    pub opcode: u8,
+    pub rd: u8,
+    pub imm: u32,
+}
+
+impl UtypeInstruction {
+    pub fn from_instruction(instruction: u32) -> UtypeInstruction{
+        let opcode = (instruction & 0b0111_1111) as u8; 
+        let rd = ((instruction >> 7) & 0b1_1111) as u8;
+        let imm = (instruction >> 12) as u32;
+        let name : UtypeInstructionNames = match opcode {
+            LUI => UtypeInstructionNames::LUI,
+            AUIPC => UtypeInstructionNames::AUIPC,
+            _ => {
+                panic!("not implement!");
+            }
+        };
+        UtypeInstruction {
+            name,
+            opcode,
+            rd,
+            imm,
+        }
+    }
+}
+
 pub fn identify_instruction(instruction: u32) -> InstructionTypes {
     let opcode = (instruction & 0b0111_1111) as u8;
     match opcode {
         OP_IMM => identify_inst_with_op_imm(instruction),
+        LUI => InstructionTypes::U,
+        AUIPC => InstructionTypes::U,
         _ => {
             panic!("not implement!")
         }
