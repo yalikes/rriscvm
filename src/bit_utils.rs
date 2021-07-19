@@ -22,6 +22,14 @@ pub fn j_sign_extend(imm: u32) -> u32 {
     imm1 << 1
 }
 
+pub fn b_sign_extend(imm: u32) -> u32{
+    let imm11 = imm & 0b1;
+    let imm1 = (imm >> 1) & 0b1111;
+    let imm5 = (imm >> 5) & 0b11_1111;
+    let imm12 = (imm >> 11) & 0b1;
+    imm12 * 0xff_ff_f0_00 | imm11 << 11 | imm5 << 5 | imm1 << 1
+}
+
 #[test]
 fn test_u32_assemble() {
     assert_eq!(u32_assemble(1, 2, 3, 4), 0x_04_03_02_01);
@@ -37,4 +45,11 @@ fn test_sign_extend() {
 #[test]
 fn test_j_sign_extend() {
     assert_eq!(j_sign_extend(0b1000_1111_0000_1111_0000), 0b1111_1111_1111_1111_0000_0000_1111_0000);
+}
+
+#[test]
+fn test_u_sign_extend() {
+    assert_eq!(b_sign_extend(0b1_010101_1111_1),
+    0b1111_1111_1111_1111_1111_1_010101_1111_0
+);
 }
