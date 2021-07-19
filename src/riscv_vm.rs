@@ -1,6 +1,7 @@
-use crate::bit_utils::{i_sign_extend, u32_assemble, u_sign_extend};
+use crate::bit_utils::{i_sign_extend, j_sign_extend, u32_assemble, u_sign_extend};
 use crate::instruction::{
     identify_instruction, InstructionTypes, ItypeInstruction, ItypeInstructionNames,
+    JtypeInstruction, JtypeInstructionNames, RtypeInstruction, RtypeInstructionNames,
     UtypeInstruction, UtypeInstructionNames,
 };
 use crate::memory::Memory;
@@ -131,7 +132,24 @@ impl RiscvVirtualMachine {
     pub fn exec(&mut self) {
         self._ir = self.fetch_instruction();
         match identify_instruction(self._ir) {
-            InstructionTypes::R => {}
+            InstructionTypes::R => {
+                let inst = RtypeInstruction::from_instruction(self._ir);
+                match inst.name {
+                    RtypeInstructionNames::ADD => self.add(),
+                    RtypeInstructionNames::SLT => self.slt(),
+                    RtypeInstructionNames::SLTU => self.sltu(),
+                    RtypeInstructionNames::AND => self.and(),
+                    RtypeInstructionNames::OR => self.or(),
+                    RtypeInstructionNames::XOR => self.xor(),
+                    RtypeInstructionNames::SLL => self.sll(),
+                    RtypeInstructionNames::SRL => self.srl(),
+                    RtypeInstructionNames::SUB => self.sub(),
+                    RtypeInstructionNames::SRA => self.sra(),
+                    _ => {
+                        panic!("not implement");
+                    }
+                }
+            }
             InstructionTypes::I => {
                 let inst = ItypeInstruction::from_instruction(self._ir);
                 match inst.name {
@@ -151,12 +169,15 @@ impl RiscvVirtualMachine {
             }
             InstructionTypes::U => {
                 let inst = UtypeInstruction::from_instruction(self._ir);
-                match inst.name{
+                match inst.name {
                     UtypeInstructionNames::LUI => self.lui(),
                     UtypeInstructionNames::AUIPC => self.auipc(),
-                    _ => {
-                        panic!("not implement yet");
-                    }
+                }
+            }
+            InstructionTypes::J => {
+                let inst = JtypeInstruction::from_instruction(self._ir);
+                match inst.name {
+                    JtypeInstructionNames::JAL => self.jal(),
                 }
             }
             _ => {}
@@ -223,7 +244,7 @@ impl RiscvVirtualMachine {
         let shamt = inst.imm & 0b1_1111;
         let rs = self.get_reg(inst.rs1);
         self.set_reg(inst.rd, rs << shamt);
-        self.pc+=4;
+        self.pc += 4;
     }
 
     pub fn srli(&mut self) {
@@ -231,7 +252,7 @@ impl RiscvVirtualMachine {
         let shamt = inst.imm & 0b1_1111;
         let rs: u32 = self.get_reg(inst.rs1);
         self.set_reg(inst.rd, rs >> shamt);
-        self.pc+=4;
+        self.pc += 4;
     }
 
     pub fn srai(&mut self) {
@@ -239,20 +260,119 @@ impl RiscvVirtualMachine {
         let shamt = inst.imm & 0b1_1111;
         let rs: i32 = self.get_reg(inst.rs1) as i32;
         self.set_reg(inst.rd, (rs >> shamt) as u32);
-        self.pc+=4;
+        self.pc += 4;
     }
+
     pub fn lui(&mut self) {
         let inst = UtypeInstruction::from_instruction(self._ir);
         let imm = u_sign_extend(inst.imm);
         self.set_reg(inst.rd, imm);
-        self.pc+=4;
+        self.pc += 4;
     }
-    pub fn auipc(&mut self){
+
+    pub fn auipc(&mut self) {
         let inst = UtypeInstruction::from_instruction(self._ir);
         let imm = u_sign_extend(inst.imm);
-        self.set_reg(inst.rd, imm+self.pc);
-        self.pc+=4;
+        self.set_reg(inst.rd, imm + self.pc);
+        self.pc += 4;
     }
+
+    pub fn add(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        self.set_reg(inst.rd, rs1 + rs2);
+        self.pc += 4;
+    }
+
+    pub fn slt(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1) as i32;
+        let rs2 = self.get_reg(inst.rs2) as i32;
+        if rs1 < rs2 {
+            self.set_reg(inst.rd, 1);
+        } else {
+            self.set_reg(inst.rd, 0);
+        }
+        self.pc += 4;
+    }
+
+    pub fn sltu(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        if rs1 < rs2 {
+            self.set_reg(inst.rd, 1);
+        } else {
+            self.set_reg(inst.rd, 0);
+        }
+        self.pc += 4;
+    }
+
+    pub fn and(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        self.set_reg(inst.rd, rs1 & rs2);
+        self.pc += 4;
+    }
+
+    pub fn or(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        self.set_reg(inst.rd, rs1 | rs2);
+        self.pc += 4;
+    }
+
+    pub fn xor(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        self.set_reg(inst.rd, rs1 ^ rs2);
+        self.pc += 4;
+    }
+
+    pub fn sll(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2) & 0b1_1111;
+        self.set_reg(inst.rd, rs1 << rs2);
+        self.pc += 4;
+    }
+
+    pub fn srl(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2) & 0b1_1111;
+        self.set_reg(inst.rd, rs1 >> rs2);
+        self.pc += 4;
+    }
+
+    pub fn sub(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        self.set_reg(inst.rd, rs1 - rs2);
+        self.pc += 4;
+    }
+
+    pub fn sra(&mut self) {
+        let inst = RtypeInstruction::from_instruction(self._ir);
+        let rs1 = self.get_reg(inst.rs1) as i32;
+        let rs2 = (self.get_reg(inst.rs2) & 0b1_1111) as i32;
+        self.set_reg(inst.rd, (rs1 >> rs2) as u32);
+        self.pc += 4;
+    }
+
+    pub fn jal(&mut self) {
+        let inst = JtypeInstruction::from_instruction(self._ir);
+        let pc = self.pc;
+        let imm = j_sign_extend(inst.imm) as i32;
+        self.pc = ((pc as i32) + imm) as u32;
+        self.set_reg(inst.rd, pc + 4);
+    }
+
     pub fn get_reg(&self, reg_name: u8) -> u32 {
         match reg_name {
             0 => self.x0,
@@ -520,7 +640,7 @@ mod test_32i_isa {
     }
 
     #[test]
-    fn test_lui(){
+    fn test_lui() {
         let mut vm = RiscvVirtualMachine::new();
         vm.memory.write(3, 0b00000000u8);
         vm.memory.write(2, 0b00000000u8);
@@ -528,11 +648,11 @@ mod test_32i_isa {
         vm.memory.write(0, 0b10110111u8);
 
         vm.exec();
-        assert_eq!(vm.get_reg(1),0b1111 << 12);
+        assert_eq!(vm.get_reg(1), 0b1111 << 12);
     }
 
     #[test]
-    fn test_auipc(){
+    fn test_auipc() {
         let mut vm = RiscvVirtualMachine::new();
         vm.memory.write(3, 0b00000000u8);
         vm.memory.write(2, 0b00000000u8);
@@ -545,9 +665,36 @@ mod test_32i_isa {
         vm.memory.write(4, 0b10010111u8);
 
         vm.exec();
-        assert_eq!(vm.get_reg(1),(0b1111 << 12) + 0 );
+        assert_eq!(vm.get_reg(1), (0b1111 << 12) + 0);
 
         vm.exec();
-        assert_eq!(vm.get_reg(1),(0b1111 << 12) + 4 );
+        assert_eq!(vm.get_reg(1), (0b1111 << 12) + 4);
+    }
+
+    #[test]
+    fn test_jal() {
+        /*
+         * pc = 0
+         * imm = 8
+         * 0 + 8 == 8
+         */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b10000000u8);
+        vm.memory.write(1, 0b00000000u8);
+        vm.memory.write(0, 0b11101111u8);
+
+        vm.memory.write(11, 0b11111111u8);
+        vm.memory.write(10, 0b10011111u8);
+        vm.memory.write(9, 0b11110000u8);
+        vm.memory.write(8, 0b11101111u8);
+
+        vm.exec();
+        assert_eq!(vm.pc, 8);
+        assert_eq!(vm.x1, 4);
+
+        vm.exec();
+        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.x1, 12);
     }
 }
