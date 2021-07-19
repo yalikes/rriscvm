@@ -145,9 +145,6 @@ impl RiscvVirtualMachine {
                     RtypeInstructionNames::SRL => self.srl(),
                     RtypeInstructionNames::SUB => self.sub(),
                     RtypeInstructionNames::SRA => self.sra(),
-                    _ => {
-                        panic!("not implement");
-                    }
                 }
             }
             InstructionTypes::I => {
@@ -162,11 +159,13 @@ impl RiscvVirtualMachine {
                     ItypeInstructionNames::SLLI => self.slli(),
                     ItypeInstructionNames::SRLI => self.srli(),
                     ItypeInstructionNames::SRAI => self.srai(),
-                    _ => {
-                        panic!("not implement yet");
-                    }
                 }
             }
+
+            InstructionTypes::S => {}
+
+            InstructionTypes::B => {}
+
             InstructionTypes::U => {
                 let inst = UtypeInstruction::from_instruction(self._ir);
                 match inst.name {
@@ -174,13 +173,13 @@ impl RiscvVirtualMachine {
                     UtypeInstructionNames::AUIPC => self.auipc(),
                 }
             }
+
             InstructionTypes::J => {
                 let inst = JtypeInstruction::from_instruction(self._ir);
                 match inst.name {
                     JtypeInstructionNames::JAL => self.jal(),
                 }
             }
-            _ => {}
         }
         //change to next instruction here
     }
