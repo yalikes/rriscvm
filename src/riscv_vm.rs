@@ -1,8 +1,8 @@
-use crate::bit_utils::{i_sign_extend, j_sign_extend, u32_assemble, u_sign_extend};
+use crate::bit_utils::{b_sign_extend, i_sign_extend, j_sign_extend, u32_assemble, u_sign_extend};
 use crate::instruction::{
-    identify_instruction, InstructionTypes, ItypeInstruction, ItypeInstructionNames,
-    JtypeInstruction, JtypeInstructionNames, RtypeInstruction, RtypeInstructionNames,
-    UtypeInstruction, UtypeInstructionNames,
+    identify_instruction, BtypeInstruction, BtypeInstructionNames, InstructionTypes,
+    ItypeInstruction, ItypeInstructionNames, JtypeInstruction, JtypeInstructionNames,
+    RtypeInstruction, RtypeInstructionNames, UtypeInstruction, UtypeInstructionNames,
 };
 use crate::memory::Memory;
 
@@ -159,12 +159,23 @@ impl RiscvVirtualMachine {
                     ItypeInstructionNames::SLLI => self.slli(),
                     ItypeInstructionNames::SRLI => self.srli(),
                     ItypeInstructionNames::SRAI => self.srai(),
+                    ItypeInstructionNames::JALR => self.jalr(),
                 }
             }
 
             InstructionTypes::S => {}
 
-            InstructionTypes::B => {}
+            InstructionTypes::B => {
+                let inst = BtypeInstruction::from_instruction(self._ir);
+                match inst.name {
+                    BtypeInstructionNames::BEQ => self.beq(),
+                    BtypeInstructionNames::BNE => self.bne(),
+                    BtypeInstructionNames::BLT => self.blt(),
+                    BtypeInstructionNames::BLTU => self.bltu(),
+                    BtypeInstructionNames::BGE => self.bge(),
+                    BtypeInstructionNames::BGEU => self.bgeu(),
+                }
+            }
 
             InstructionTypes::U => {
                 let inst = UtypeInstruction::from_instruction(self._ir);
@@ -370,6 +381,86 @@ impl RiscvVirtualMachine {
         let imm = j_sign_extend(inst.imm) as i32;
         self.pc = ((pc as i32) + imm) as u32;
         self.set_reg(inst.rd, pc + 4);
+    }
+
+    pub fn jalr(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let pc = self.pc;
+        let imm = i_sign_extend(inst.imm) as i32;
+        self.pc = ((self.get_reg(inst.rs1) as i32) + imm) as u32 & 0xff_ff_ff_fe;
+        self.set_reg(inst.rd, pc + 4);
+    }
+
+    pub fn beq(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        if rs1 == rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
+    }
+
+    pub fn bne(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        if rs1 != rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
+    }
+
+    pub fn blt(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1) as i32;
+        let rs2 = self.get_reg(inst.rs2) as i32;
+        if rs1 < rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
+    }
+
+    pub fn bltu(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        if rs1 < rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
+    }
+
+    pub fn bge(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1) as i32;
+        let rs2 = self.get_reg(inst.rs2) as i32;
+        if rs1 >= rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
+    }
+
+    pub fn bgeu(&mut self) {
+        let inst = BtypeInstruction::from_instruction(self._ir);
+        let offset = b_sign_extend(inst.imm) as i32;
+        let rs1 = self.get_reg(inst.rs1);
+        let rs2 = self.get_reg(inst.rs2);
+        if rs1 >= rs2 {
+            self.pc = ((self.pc as i32) + offset) as u32;
+        } else {
+            self.pc += 4;
+        }
     }
 
     pub fn get_reg(&self, reg_name: u8) -> u32 {
@@ -695,5 +786,28 @@ mod test_32i_isa {
         vm.exec();
         assert_eq!(vm.pc, 0);
         assert_eq!(vm.x1, 12);
+    }
+
+    #[test]
+    fn test_jalr() {
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b10010001u8);
+        vm.memory.write(1, 0b00000000u8);
+        vm.memory.write(0, 0b11100111u8);
+
+        vm.memory.write(19, 0b11111111u8);
+        vm.memory.write(18, 0b10000001u8);
+        vm.memory.write(17, 0b00000000u8);
+        vm.memory.write(16, 0b11100111u8);
+
+        vm.set_reg(2, 8);
+        vm.exec();
+        assert_eq!(vm.pc, 16);
+        assert_eq!(vm.x1, 4);
+
+        vm.exec();
+        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.x1, 20);
     }
 }

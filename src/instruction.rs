@@ -8,7 +8,8 @@ const OP_IMM_32: u8 = 0b_00_110_11;
 const LUI: u8 = 0b_01_101_11;
 const OP: u8 = 0b01_100_11;
 const JAL: u8 = 0b11_011_11;
-
+const JALR: u8 = 0b11_001_11;
+const BRANCH: u8 = 0b11_000_11;
 
 const ADDI_FUNCT3: u8 = 0b000;
 const SLTI_FUNCT3: u8 = 0b010;
@@ -28,13 +29,17 @@ const SRL_OR_SRA_FUNCT3: u8 = 0b101;
 const OR_FUNCT3: u8 = 0b110;
 const AND_FUNCT3: u8 = 0b111;
 
-
+const BEQ_FUNCT3: u8 = 0b000;
+const BNE_FUNCT3: u8 = 0b001;
+const BLT_FUNCT3: u8 = 0b100;
+const BGE_FUNCT3: u8 = 0b101;
+const BLTU_FUNCT3: u8 = 0b110;
+const BGEU_FUNCT3: u8 = 0b111;
 
 const ADD_FUNCT7: u8 = 0b000_0000;
 const SUB_FUNCT7: u8 = 0b010_0000;
 const SRL_FUNCT7: u8 = 0b000_0000;
 const SRA_FUNCT7: u8 = 0b010_0000;
-
 
 pub enum InstructionTypes {
     R,
@@ -55,6 +60,7 @@ pub enum ItypeInstructionNames {
     SLLI,
     SRLI,
     SRAI,
+    JALR,
 }
 pub struct ItypeInstruction {
     pub name: ItypeInstructionNames,
@@ -93,6 +99,7 @@ impl ItypeInstruction {
                     panic!("not implement!")
                 }
             },
+            JARL => ItypeInstructionNames::JALR,
             _ => {
                 panic!("not implement!");
             }
@@ -165,7 +172,7 @@ pub struct RtypeInstruction {
 }
 
 impl RtypeInstruction {
-    pub fn from_instruction(instruction: u32) -> RtypeInstruction{
+    pub fn from_instruction(instruction: u32) -> RtypeInstruction {
         let opcode = (instruction & 0b0111_1111) as u8;
         let rd = ((instruction >> 7) & 0b1_1111) as u8;
         let funct3 = ((instruction >> 12) & 0b111) as u8;
@@ -173,31 +180,29 @@ impl RtypeInstruction {
         let rs2 = ((instruction >> 20) & 0b1_1111) as u8;
         let funct7 = (instruction >> 25) as u8;
         let name: RtypeInstructionNames = match opcode {
-            OP => {
-                match funct3 {
-                    ADD_OR_SUB_FUNCT3 => match funct7{
-                        ADD_FUNCT7 => RtypeInstructionNames::ADD,
-                        SUB_FUNCT7 => RtypeInstructionNames::SUB,
-                        _ =>{
-                            panic!("not implement");
-                        }
-                    },
-                    SLL_FUNCT3 => RtypeInstructionNames::SLL,
-                    SLT_FUNCT3 => RtypeInstructionNames::SLT,
-                    SLTU_FUNCT3 => RtypeInstructionNames::SLTU,
-                    XOR_FUNCT3 => RtypeInstructionNames::XOR,
-                    SRL_OR_SRA_FUNCT3 => match funct7 {
-                        SRL_FUNCT7 => RtypeInstructionNames::SRL,
-                        SRA_FUNCT7 => RtypeInstructionNames::SRA,
-                        _ =>{
-                            panic!("not implment");
-                        }
-                    },
-                    OR_FUNCT3 => RtypeInstructionNames::OR,
-                    AND_FUNCT3 => RtypeInstructionNames::AND,
+            OP => match funct3 {
+                ADD_OR_SUB_FUNCT3 => match funct7 {
+                    ADD_FUNCT7 => RtypeInstructionNames::ADD,
+                    SUB_FUNCT7 => RtypeInstructionNames::SUB,
                     _ => {
-                        panic!("not implement!")
+                        panic!("not implement");
                     }
+                },
+                SLL_FUNCT3 => RtypeInstructionNames::SLL,
+                SLT_FUNCT3 => RtypeInstructionNames::SLT,
+                SLTU_FUNCT3 => RtypeInstructionNames::SLTU,
+                XOR_FUNCT3 => RtypeInstructionNames::XOR,
+                SRL_OR_SRA_FUNCT3 => match funct7 {
+                    SRL_FUNCT7 => RtypeInstructionNames::SRL,
+                    SRA_FUNCT7 => RtypeInstructionNames::SRA,
+                    _ => {
+                        panic!("not implment");
+                    }
+                },
+                OR_FUNCT3 => RtypeInstructionNames::OR,
+                AND_FUNCT3 => RtypeInstructionNames::AND,
+                _ => {
+                    panic!("not implement!")
                 }
             },
             _ => {
@@ -217,7 +222,7 @@ impl RtypeInstruction {
 }
 
 pub enum JtypeInstructionNames {
-    JAL
+    JAL,
 }
 
 pub struct JtypeInstruction {
@@ -227,13 +232,13 @@ pub struct JtypeInstruction {
     pub imm: u32,
 }
 
-impl JtypeInstruction{
-    pub fn from_instruction(instruction: u32) -> JtypeInstruction{
+impl JtypeInstruction {
+    pub fn from_instruction(instruction: u32) -> JtypeInstruction {
         let opcode = (instruction & 0b0111_1111) as u8;
         let rd = ((instruction >> 7) & 0b1_1111) as u8;
         let imm = (instruction >> 12) as u32;
         let name = JtypeInstructionNames::JAL;
-        JtypeInstruction{
+        JtypeInstruction {
             name,
             opcode,
             rd,
@@ -241,6 +246,56 @@ impl JtypeInstruction{
         }
     }
 }
+
+pub enum BtypeInstructionNames {
+    BEQ,
+    BNE,
+    BLT,
+    BGE,
+    BLTU,
+    BGEU,
+}
+
+pub struct BtypeInstruction {
+    pub name: BtypeInstructionNames,
+    pub opcode: u8,
+    pub rs1: u8,
+    pub rs2: u8,
+    pub funct3: u8,
+    pub imm: u32,
+}
+
+impl BtypeInstruction {
+    pub fn from_instruction(instruction: u32) -> BtypeInstruction {
+        let opcode = (instruction & 0b0111_1111) as u8;
+        let imm11 = ((instruction >> 7) & 0b1_1111) as u8;
+        let funct3 = ((instruction >> 12) & 0b111) as u8;
+        let rs1 = ((instruction >> 15) & 0b1_1111) as u8;
+        let rs2 = ((instruction >> 20) & 0b1_1111) as u8;
+        let imm5 = ((instruction >> 25) & 0b111_1111) as u8;
+        let imm = imm11 as u32 | (imm5 as u32) << 5;
+        let name = match funct3 {
+            BEQ_FUNCT3 => BtypeInstructionNames::BEQ,
+            BNE_FUNCT3 => BtypeInstructionNames::BNE,
+            BLT_FUNCT3 => BtypeInstructionNames::BLT,
+            BGE_FUNCT3 => BtypeInstructionNames::BGE,
+            BLTU_FUNCT3 => BtypeInstructionNames::BLTU,
+            BGEU_FUNCT3 => BtypeInstructionNames::BGEU,
+            _ => {
+                panic!("not implement");
+            }
+        };
+        BtypeInstruction {
+            name,
+            opcode,
+            rs1,
+            rs2,
+            funct3,
+            imm
+        }
+    }
+}
+
 pub fn identify_instruction(instruction: u32) -> InstructionTypes {
     let opcode = (instruction & 0b0111_1111) as u8;
     match opcode {
@@ -249,6 +304,8 @@ pub fn identify_instruction(instruction: u32) -> InstructionTypes {
         AUIPC => InstructionTypes::U,
         OP => InstructionTypes::R,
         JAL => InstructionTypes::J,
+        JALR => InstructionTypes::I,
+        BRANCH => InstructionTypes::B,
         _ => {
             panic!("not implement!")
         }
