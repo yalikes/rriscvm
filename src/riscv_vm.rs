@@ -810,4 +810,20 @@ mod test_32i_isa {
         assert_eq!(vm.pc, 0);
         assert_eq!(vm.x1, 20);
     }
+
+    #[test]
+    fn test_beq(){
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00110001u8);
+        vm.memory.write(1, 0b00000100u8);
+        vm.memory.write(0, 0b01100011u8);
+        
+        vm.set_reg(2, 12);
+        vm.set_reg(3, 12);
+        vm.exec();
+        assert_eq!(vm.pc, 8);
+    }
+
+    
 }
