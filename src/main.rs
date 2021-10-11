@@ -2,11 +2,7 @@
 //extern crate lazy_static;
 //上面的那个库我已经忘了为什么要引入了
 
-mod riscv_vm;
-mod memory;
-mod instruction;
-mod defines;
-mod bit_utils;
+use rriscvm::riscv_vm;
 
 use riscv_vm::RiscvVirtualMachine;
 

@@ -1,15 +1,16 @@
-const LOAD: u8 = 0b_00_000_11;
-const LOAD_FP: u8 = 0b_00_001_11;
-const CUSTOM_0: u8 = 0b_00_010_11;
-const MISC_MEM: u8 = 0b_00_011_11;
-const OP_IMM: u8 = 0b_00_100_11;
-const AUIPC: u8 = 0b_00_101_11;
-const OP_IMM_32: u8 = 0b_00_110_11;
-const LUI: u8 = 0b_01_101_11;
+const LOAD: u8 = 0b00_000_11;
+const LOAD_FP: u8 = 0b00_001_11;
+const CUSTOM_0: u8 = 0b00_010_11;
+const MISC_MEM: u8 = 0b00_011_11;
+const OP_IMM: u8 = 0b00_100_11;
+const AUIPC: u8 = 0b00_101_11;
+const OP_IMM_32: u8 = 0b00_110_11;
+const LUI: u8 = 0b01_101_11;
 const OP: u8 = 0b01_100_11;
 const JAL: u8 = 0b11_011_11;
 const JALR: u8 = 0b11_001_11;
 const BRANCH: u8 = 0b11_000_11;
+const STORE: u8 = 0b01_000_11;
 
 const ADDI_FUNCT3: u8 = 0b000;
 const SLTI_FUNCT3: u8 = 0b010;
@@ -36,6 +37,16 @@ const BGE_FUNCT3: u8 = 0b101;
 const BLTU_FUNCT3: u8 = 0b110;
 const BGEU_FUNCT3: u8 = 0b111;
 
+const LB_FUNCT3: u8 = 0b000;
+const LH_FUNCT3: u8 = 0b001;
+const LW_FUNCT3: u8 = 0b010;
+const LBU_FUNCT3: u8 = 0b100;
+const LHU_FUNCT3: u8 = 0b101;
+
+const SB: u8 = 0b000;
+const SH: u8 = 0b001;
+const SW: u8 = 0b010;
+
 const ADD_FUNCT7: u8 = 0b000_0000;
 const SUB_FUNCT7: u8 = 0b010_0000;
 const SRL_FUNCT7: u8 = 0b000_0000;
@@ -61,6 +72,11 @@ pub enum ItypeInstructionNames {
     SRLI,
     SRAI,
     JALR,
+    LW,
+    LH,
+    LB,
+    LBU,
+    LHU,
 }
 pub struct ItypeInstruction {
     pub name: ItypeInstructionNames,
@@ -99,7 +115,17 @@ impl ItypeInstruction {
                     panic!("not implement!")
                 }
             },
-            JARL => ItypeInstructionNames::JALR,
+            JALR => ItypeInstructionNames::JALR,
+            LOAD => match funct3 {
+                LB_FUNCT3 => ItypeInstructionNames::LB,
+                LH_FUNCT3 => ItypeInstructionNames::LH,
+                LW_FUNCT3 => ItypeInstructionNames::LW,
+                LBU_FUNCT3 => ItypeInstructionNames::LBU,
+                LHU_FUNCT3 => ItypeInstructionNames::LHU,
+                _ => {
+                    panic!("not implement!");
+                }
+            },
             _ => {
                 panic!("not implement!");
             }
@@ -291,6 +317,49 @@ impl BtypeInstruction {
             rs1,
             rs2,
             funct3,
+            imm,
+        }
+    }
+}
+
+pub enum StypeInstructionNames {
+    SW,
+    SH,
+    SB,
+}
+
+pub struct StypeInstruction {
+    pub name: StypeInstructionNames,
+    pub opcode: u8,
+    pub rs1: u8,
+    pub rs2: u8,
+    pub funct3: u8,
+    pub imm: u16,
+}
+
+impl StypeInstruction {
+    pub fn from_instruction(instruction: u32) -> StypeInstruction {
+        let opcode = (instruction & 0b0111_1111) as u8;
+        let imm0 = (instruction >> 7) & 0b1_1111;
+        let funct3 = ((instruction >> 12) & 0b111) as u8;
+        let rs1 = ((instruction >> 15) & 0b1_1111) as u8;
+        let rs2 = ((instruction >> 20) & 0b1_1111) as u8;
+        let imm5 = instruction >> 25;
+        let imm = (imm5 << 5 | imm0) as u16;
+        let name = match funct3 {
+            SB => StypeInstructionNames::SB,
+            SH => StypeInstructionNames::SH,
+            SW => StypeInstructionNames::SW,
+            _ => {
+                panic!("not implement");
+            }
+        };
+        StypeInstruction {
+            name,
+            opcode,
+            rs1,
+            rs2,
+            funct3,
             imm
         }
     }
@@ -303,9 +372,11 @@ pub fn identify_instruction(instruction: u32) -> InstructionTypes {
         LUI => InstructionTypes::U,
         AUIPC => InstructionTypes::U,
         OP => InstructionTypes::R,
-        JAL => InstructionTypes::J,
+        JAL => InstructionTypes::J, 
         JALR => InstructionTypes::I,
         BRANCH => InstructionTypes::B,
+        LOAD => InstructionTypes::I,
+        STORE => InstructionTypes::S,
         _ => {
             panic!("not implement!")
         }

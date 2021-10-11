@@ -1,8 +1,11 @@
-use crate::bit_utils::{b_sign_extend, i_sign_extend, j_sign_extend, u32_assemble, u_sign_extend};
+use crate::bit_utils::{
+    b_sign_extend, i_sign_extend, j_sign_extend, s_sign_extend, u32_assemble, u_sign_extend,
+};
 use crate::instruction::{
     identify_instruction, BtypeInstruction, BtypeInstructionNames, InstructionTypes,
     ItypeInstruction, ItypeInstructionNames, JtypeInstruction, JtypeInstructionNames,
-    RtypeInstruction, RtypeInstructionNames, UtypeInstruction, UtypeInstructionNames,
+    RtypeInstruction, RtypeInstructionNames, StypeInstruction, StypeInstructionNames,
+    UtypeInstruction, UtypeInstructionNames,
 };
 use crate::memory::Memory;
 
@@ -147,6 +150,7 @@ impl RiscvVirtualMachine {
                     RtypeInstructionNames::SRA => self.sra(),
                 }
             }
+
             InstructionTypes::I => {
                 let inst = ItypeInstruction::from_instruction(self._ir);
                 match inst.name {
@@ -160,10 +164,22 @@ impl RiscvVirtualMachine {
                     ItypeInstructionNames::SRLI => self.srli(),
                     ItypeInstructionNames::SRAI => self.srai(),
                     ItypeInstructionNames::JALR => self.jalr(),
+                    ItypeInstructionNames::LB => self.lb(),
+                    ItypeInstructionNames::LH => self.lh(),
+                    ItypeInstructionNames::LW => self.lw(),
+                    ItypeInstructionNames::LBU => self.lbu(),
+                    ItypeInstructionNames::LHU => self.lhu(),
                 }
             }
 
-            InstructionTypes::S => {}
+            InstructionTypes::S => {
+                let inst = StypeInstruction::from_instruction(self._ir);
+                match inst.name {
+                    StypeInstructionNames::SB => self.sb(),
+                    StypeInstructionNames::SH => self.sh(),
+                    StypeInstructionNames::SW => self.sw(),
+                }
+            }
 
             InstructionTypes::B => {
                 let inst = BtypeInstruction::from_instruction(self._ir);
@@ -462,6 +478,41 @@ impl RiscvVirtualMachine {
             self.pc += 4;
         }
     }
+
+    pub fn lb(&mut self) {
+        let inst = ItypeInstruction::from_instruction(self._ir);
+        let rd = inst.rd;
+        let rs1 = inst.rs1;
+        let imm = i_sign_extend(inst.imm) as i32;
+        let addr = (imm + self.get_reg(rs1) as i32) as u32;
+        let value = self.memory.fetch(addr);
+        self.set_reg(inst.rd, value as u32);
+        self.pc += 4;
+    }
+
+    pub fn lh(&mut self) {}
+
+    pub fn lw(&mut self) {}
+
+    pub fn lbu(&mut self) {}
+
+    pub fn lhu(&mut self) {}
+
+    pub fn sb(&mut self) {
+        let inst = StypeInstruction::from_instruction(self._ir);
+        let rs1 = inst.rs1;
+        let rs2 = inst.rs2;
+        let offset = s_sign_extend(inst.imm) as i32;
+        let base = self.get_reg(rs1) as i32;
+        let addr = (base + offset) as u32;
+        let value = (self.get_reg(rs2) & 0xff) as u8;
+        self.memory.write(addr, value);
+        self.pc += 4;
+    }
+
+    pub fn sh(&mut self) {}
+
+    pub fn sw(&mut self) {}
 
     pub fn get_reg(&self, reg_name: u8) -> u32 {
         match reg_name {
@@ -812,18 +863,58 @@ mod test_32i_isa {
     }
 
     #[test]
-    fn test_beq(){
+    fn test_beq() {
         let mut vm = RiscvVirtualMachine::new();
         vm.memory.write(3, 0b00000000u8);
         vm.memory.write(2, 0b00110001u8);
         vm.memory.write(1, 0b00000100u8);
         vm.memory.write(0, 0b01100011u8);
-        
         vm.set_reg(2, 12);
         vm.set_reg(3, 12);
         vm.exec();
         assert_eq!(vm.pc, 8);
     }
 
-    
+    #[test]
+    fn test_lb() {
+        /*
+         *  dest: x1
+         *  x2 = 2
+         *  imm = 12
+         *  addr = 2 + 12 =14
+         *  mem[addr] = 42
+         *  x1 == 42
+         */
+        let mut vm = RiscvVirtualMachine::new();
+
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b11000001u8);
+        vm.memory.write(1, 0b00000000u8);
+        vm.memory.write(0, 0b10000011u8);
+        vm.memory.write(14, 42);
+        vm.set_reg(2, 2);
+        vm.exec();
+        assert_eq!(vm.get_reg(1), 42);
+    }
+
+    #[test]
+    fn test_sb(){
+        /*
+            src: x3
+            base: x2
+        *   base = 2
+        *   offset = 12
+        *   src = 42
+        */
+        let mut vm = RiscvVirtualMachine::new();
+        vm.memory.write(3, 0b00000000u8);
+        vm.memory.write(2, 0b00110001u8);
+        vm.memory.write(1, 0b00000110u8);
+        vm.memory.write(0, 0b00100011u8);
+
+        vm.set_reg(2, 2);
+        vm.set_reg(3, 42);
+        vm.exec();
+        assert_eq!(vm.memory.fetch(14), 42);
+    }
 }
